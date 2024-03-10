@@ -28,6 +28,7 @@ player = transform.scale( player_image, (player_width, player_height) )
 player_x = SCREEN_WIDTH * 0.5 - player_width * 0.5
 player_y = SCREEN_HEIGHT - player_height - 20
 player_max_x = SCREEN_WIDTH - player_width
+player_max_y = SCREEN_HEIGHT - player_height
 player_hp = 3
 
 def subtractHp():
@@ -57,21 +58,29 @@ class Enemy():
         self.image = enemy
         self.x = randint(0, enemy_max_x)
         self.y = -enemy_height
-        self.speed = 2
+        self.speed = 1
         UFO_LIST.append(self)
+
+    def remove(self):
+        index = UFO_LIST.index(self)
+        del UFO_LIST[index]
 
     def update(self, screen):
         self.y += self.speed
         # проверка - не улетел ли за экран
         if self.y > SCREEN_HEIGHT:
             # если улетел - удаляем из списка
-            index = UFO_LIST.index(self)
-            del UFO_LIST[index]
+            self.remove()
             subtractHp()
         else:
             # если не улетел
             # проверяем столкновение с игроком
-            screen.blit(self.image, (self.x, self.y))
+            if player_x > self.x and player_x < self.x + enemy_width\
+            and player_y > self.y and player_y < self.y + enemy_height:
+                subtractHp()
+                self.remove()
+            else:
+                screen.blit(self.image, (self.x, self.y))
 
 tick = 0
 game_loop_is = True
@@ -94,15 +103,24 @@ while game_loop_is:
         player_x += player_speed
         if player_x > player_max_x:
             player_x = player_max_x
+    elif KEY[K_UP]:
+        player_y -= player_speed
+        if player_y < 0:
+            player_y = 0
+    elif KEY[K_DOWN]:
+        player_y += player_speed
+        if player_y > player_max_y:
+            player_y = player_max_y
 
     SCREEN.blit(bg, (0, 0))
 
     if player_hp > 0:
         SCREEN.blit(player, (player_x, player_y))
         for ufo in UFO_LIST : ufo.update(SCREEN)
-        SCREEN.blit(label_hp, label_hp_rect)
     else:
         SCREEN.blit(label_game_over, label_game_over_rect)
+
+    SCREEN.blit(label_hp, label_hp_rect)
 
     display.flip()
 
