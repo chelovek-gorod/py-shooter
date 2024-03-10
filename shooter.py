@@ -30,17 +30,26 @@ player_y = SCREEN_HEIGHT - player_height - 20
 player_max_x = SCREEN_WIDTH - player_width
 player_max_y = SCREEN_HEIGHT - player_height
 player_hp = 3
+player_score = 0
 
 def subtractHp():
     global player_hp, label_hp
     player_hp -= 1
     label_hp = label_font.render(f'HP: {player_hp}', True, (255, 255, 255))
 
+def addScore(score = 1):
+    global player_score, label_score
+    player_score += score
+    label_score = label_font.render(f'Score: {player_score}', True, (255, 255, 255))
+
 label_font = font.Font(None, 36)
 game_over_font = font.Font(None, 72)
 
 label_hp = label_font.render(f'HP: {player_hp}', True, (255, 255, 255))
-label_hp_rect = label_hp.get_rect(x=20, y = 20) # get_rect(center = (130, 30))
+label_hp_rect = label_hp.get_rect(x = 20, y = 20)
+
+label_score = label_font.render(f'Score: {player_score}', True, (255, 255, 255))
+label_score_rect = label_score.get_rect(right = SCREEN_WIDTH-20, y = 20)
 
 label_game_over = game_over_font.render('GAME OVER', True, (255, 0, 0))
 label_game_over_rect = label_game_over.get_rect(center = (SCREEN_WIDTH*0.5, SCREEN_HEIGHT*0.5))
@@ -58,7 +67,7 @@ class Enemy():
         self.image = enemy
         self.x = randint(0, enemy_max_x)
         self.y = -enemy_height
-        self.speed = 1
+        self.speed = 1 if randint(0, 3) < 3 else 2
         UFO_LIST.append(self)
 
     def remove(self):
@@ -75,9 +84,9 @@ class Enemy():
         else:
             # если не улетел
             # проверяем столкновение с игроком
-            if player_x > self.x and player_x < self.x + enemy_width\
-            and player_y > self.y and player_y < self.y + enemy_height:
-                subtractHp()
+            if self.x + enemy_width > player_x and self.x < player_x + player_width\
+            and self.y + enemy_height > player_y and self.y < player_y + player_height:
+                addScore(5)
                 self.remove()
             else:
                 screen.blit(self.image, (self.x, self.y))
@@ -121,6 +130,7 @@ while game_loop_is:
         SCREEN.blit(label_game_over, label_game_over_rect)
 
     SCREEN.blit(label_hp, label_hp_rect)
+    SCREEN.blit(label_score, label_score_rect)
 
     display.flip()
 
