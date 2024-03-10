@@ -21,14 +21,24 @@ bg_image = image.load('./src/galaxy.jpg')
 bg = transform.scale( bg_image, (960, 701) )
 
 player_image = image.load('./src/rocket.png')
-player = transform.scale( player_image, (62, 80) )
-player_x = SCREEN_WIDTH * 0.5 - 31
-player_y = SCREEN_HEIGHT - 100
-player_max_x = SCREEN_WIDTH - 62
+player_width = 62
+player_height = 80
+player_speed = 5
+player = transform.scale( player_image, (player_width, player_height) )
+player_x = SCREEN_WIDTH * 0.5 - player_width * 0.5
+player_y = SCREEN_HEIGHT - player_height - 20
+player_max_x = SCREEN_WIDTH - player_width
+player_hp = 3
+
+my_font = font.Font(None, 36)
+label_hp = my_font.render(f'HP: {player_hp}', True, (255, 255, 255))
+label_hp_rect = label_hp.get_rect(x=20, y = 20) # get_rect(center = (130, 30))
 
 enemy_image = image.load('./src/ufo.png')
+enemy_width = 120
+enemy_height = 62
 enemy = transform.scale( enemy_image, (120, 62) )
-enemy_max_x = SCREEN_WIDTH - 120
+enemy_max_x = SCREEN_WIDTH - enemy_width
 
 UFO_LIST = []
 
@@ -36,7 +46,7 @@ class Enemy():
     def __init__(self):
         self.image = enemy
         self.x = randint(0, enemy_max_x)
-        self.y = -62
+        self.y = -enemy_height
         self.speed = 2
         UFO_LIST.append(self)
 
@@ -62,11 +72,11 @@ while game_loop_is:
     # получаем список нажатых клавиш
     KEY = key.get_pressed()
     if KEY[K_LEFT]:
-        player_x -= 5
+        player_x -= player_speed
         if player_x < 0:
             player_x = 0
     elif KEY[K_RIGHT]:
-        player_x += 5
+        player_x += player_speed
         if player_x > player_max_x:
             player_x = player_max_x
 
@@ -75,6 +85,8 @@ while game_loop_is:
     SCREEN.blit(player, (player_x, player_y))
 
     for ufo in UFO_LIST : ufo.update(SCREEN)
+
+    SCREEN.blit(label_hp, label_hp_rect)
 
     display.flip()
 
