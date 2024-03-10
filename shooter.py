@@ -30,9 +30,19 @@ player_y = SCREEN_HEIGHT - player_height - 20
 player_max_x = SCREEN_WIDTH - player_width
 player_hp = 3
 
-my_font = font.Font(None, 36)
-label_hp = my_font.render(f'HP: {player_hp}', True, (255, 255, 255))
+def subtractHp():
+    global player_hp, label_hp
+    player_hp -= 1
+    label_hp = label_font.render(f'HP: {player_hp}', True, (255, 255, 255))
+
+label_font = font.Font(None, 36)
+game_over_font = font.Font(None, 72)
+
+label_hp = label_font.render(f'HP: {player_hp}', True, (255, 255, 255))
 label_hp_rect = label_hp.get_rect(x=20, y = 20) # get_rect(center = (130, 30))
+
+label_game_over = game_over_font.render('GAME OVER', True, (255, 0, 0))
+label_game_over_rect = label_game_over.get_rect(center = (SCREEN_WIDTH*0.5, SCREEN_HEIGHT*0.5))
 
 enemy_image = image.load('./src/ufo.png')
 enemy_width = 120
@@ -52,10 +62,15 @@ class Enemy():
 
     def update(self, screen):
         self.y += self.speed
+        # проверка - не улетел ли за экран
         if self.y > SCREEN_HEIGHT:
+            # если улетел - удаляем из списка
             index = UFO_LIST.index(self)
             del UFO_LIST[index]
+            subtractHp()
         else:
+            # если не улетел
+            # проверяем столкновение с игроком
             screen.blit(self.image, (self.x, self.y))
 
 tick = 0
@@ -82,11 +97,12 @@ while game_loop_is:
 
     SCREEN.blit(bg, (0, 0))
 
-    SCREEN.blit(player, (player_x, player_y))
-
-    for ufo in UFO_LIST : ufo.update(SCREEN)
-
-    SCREEN.blit(label_hp, label_hp_rect)
+    if player_hp > 0:
+        SCREEN.blit(player, (player_x, player_y))
+        for ufo in UFO_LIST : ufo.update(SCREEN)
+        SCREEN.blit(label_hp, label_hp_rect)
+    else:
+        SCREEN.blit(label_game_over, label_game_over_rect)
 
     display.flip()
 
