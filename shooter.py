@@ -1,5 +1,5 @@
 from pygame import *
-import sys
+import sys # данная библиотека понадобится для корректного выхода из игры
 from random import randint
 init() # запускаем встроенный функционал PyGame для корректной работы библиотеки
 
