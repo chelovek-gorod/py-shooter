@@ -1,151 +1,188 @@
-from pygame import *
+# команда для сборки игры в один исходный файл
+# pyinstaller --onefile --name MyGame --icon=icon.ico -F --noconsole main5.py
+
+import pygame as PG
 import sys # данная библиотека понадобится для корректного выхода из игры
 from random import randint
-init() # запускаем встроенный функционал PyGame для корректной работы библиотеки
+PG.init() # запускаем встроенный функционал PyGame для корректной работы библиотеки
 
 SCREEN_WIDTH = 960 # ширина игрового окна
 SCREEN_HEIGHT = 700 # высота игрового окна
-SCREEN = display.set_mode( (SCREEN_WIDTH, SCREEN_HEIGHT) ) # создаем игровое окно
+SCREEN = PG.display.set_mode( (SCREEN_WIDTH, SCREEN_HEIGHT) ) # создаем игровое окно
 FPS = 60 # частота обновления экрана (frames per second - количество кадров в секунду)
-CLOCK = time.Clock() # создаем счетчик времени между кадрами, для поддержки заданного значения FPS
+CLOCK = PG.time.Clock() # создаем счетчик времени между кадрами, для поддержки заданного значения FPS
 
-mixer.init() # запускаем встроенный функционал PyGame для для работы с музыкой и звуками
+PG.mixer.init() # запускаем встроенный функционал PyGame для для работы с музыкой и звуками
 
-sound_shoot = mixer.Sound('./src/se_hit.mp3') # создаем звук выстрела и сохраняем в переменную
+sound_shoot = PG.mixer.Sound('./src/se_hit.mp3') # создаем звук выстрела и сохраняем в переменную
 
-mixer.music.load('./src/bgm_space_1.mp3') # создаем фоновую музыку для игры
-mixer.music.set_volume(0.7) # задаем громкость для фоновой музыки
-mixer.music.play() # запускаем фоновую музыку
+PG.mixer.music.load('./src/bgm_space_1.mp3') # создаем фоновую музыку для игры
+PG.mixer.music.set_volume(0.7) # задаем громкость для фоновой музыки
+PG.mixer.music.play() # запускаем фоновую музыку
 
-bg_image = image.load('./src/galaxy.jpg') # загружаем фоновое изображение
-bg = transform.scale( bg_image, (960, 701) ) # задаем размер для фонового изображения
+bg_image = PG.image.load('./src/galaxy.jpg') # загружаем фоновое изображение
+bg = PG.transform.scale( bg_image, (960, 701) ) # задаем размер для фонового изображения
 
-player_image = image.load('./src/rocket.png') # загружаем изображение игрока
-player_width = 62 # задаем ширину изображения игрока
-player_height = 80 # задаем высоту изображения игрока
-player_speed = 5 # задаем скорость для игрока
-player = transform.scale( player_image, (player_width, player_height) ) # задаем размер для изображения игрока
-player_x = SCREEN_WIDTH * 0.5 - player_width * 0.5 # задаем координату X игрока - середина экрана
-player_y = SCREEN_HEIGHT - player_height - 20 # задаем координату X игрока - середина экрана
-player_max_x = SCREEN_WIDTH - player_width # задаем максимальную координату X игрока - чтобы не вылетал за экран
-player_max_y = SCREEN_HEIGHT - player_height # задаем максимальную координату Y игрока - чтобы не вылетал за экран
-player_hp = 3 # задаем стартовое число жизней
-player_score = 0 # задаем стартовое число очков
+player_image = PG.image.load('./src/rocket.png') # загружаем изображение игрока
 
-# функция для вычитание жизней у игрока
-def subtractHp():
-    global player_hp, label_hp # получаем доступ для изменения переменных, объявленных вне функции
-    player_hp -= 1 # отнимаем 1 очко здоровья и обновляем текст с очками здоровья на экране
-    label_hp = label_font.render(f'HP: {player_hp}', True, (255, 255, 255))
+enemy_image = PG.image.load('./src/ufo.png') # загружаем изображение игрока
+enemies_group = PG.sprite.Group() # создаем группу для спрайтов врагов
 
-# функция для добавления очков игроку (принимает число очков, которое нужно добавить, по умолчанию 1)
-def addScore(score = 1):
-    global player_score, label_score, label_score_rect  # получаем доступ для изменения переменных, объявленных вне функции
-    player_score += score # изменяем число очков и обновляем текст с очками на экране
-    label_score = label_font.render(f'Score: {player_score}', True, (255, 255, 255))
-    # обновляем положение текста с числом очков на экране (текст должен всегда отступать от правого края экрана)
-    label_score_rect = label_score.get_rect(right = SCREEN_WIDTH-20, y = 20)
+bullet_image = PG.image.load('./src/bullet.png') # загружаем изображение игрока
+bullets_group = PG.sprite.Group() # создаем группу для спрайтов пуль
 
-label_font = font.Font(None, 36) # создаем шрифт для вывода число очков и здоровья игрока
-game_over_font = font.Font(None, 72) # создаем шрифт для вывода текста проигрыша
+# класс для создания надписей
+class Label(): # text - текст надписи, x и y - координаты, align - направление, font_size - размер, color- цвет
+    def __init__(self, text, x, y, align = 'left', font_size = 36, color = (255, 255, 255)):
+        self.font = PG.font.Font(None, font_size) # создаем шрифт (None - любой системный, font_size - размер)
+        self.align = align # сохраняем направления для перерасчета координат отрисовки
+        self.color = color
+        self.x = x # сохраняем начальную координату x для перерасчета координат отрисовки
+        self.y = y # сохраняем начальную координату y для перерасчета координат отрисовки
+        self.render(text) # обновляем текст
+    
+    def render(self, text): # метод обновления текста
+        self.text = self.font.render(text, True, self.color) # переводим текст в набор пикселей (True - сглаживать пиксели)
+        self.rect = self.text.get_rect() # определяем прямоугольник по размеру текста
+        self.rect.centery = self.y # задаем прямоугольнику для отрисовки текста координаты x и y
+        if self.align == 'left': self.rect.left = self.x
+        elif self.align == 'right': self.rect.right = self.x
+        else : self.rect.centerx = self.x
 
-# создаем текст с очками здоровья, и прямоугольник в который будем вписывать данный текст
-label_hp = label_font.render(f'HP: {player_hp}', True, (255, 255, 255))
-label_hp_rect = label_hp.get_rect(x = 20, y = 20)
+# создаем надпись 'GAME OVER'
+label_game_over = Label('GAME OVER', SCREEN_WIDTH*0.5, SCREEN_HEIGHT*0.5, 'center', 72, (255, 0, 0))
 
-# создаем текст с очками игрока и прямоугольник в который будем вписывать данный текст
-label_score = label_font.render(f'Score: {player_score}', True, (255, 255, 255))
-label_score_rect = label_score.get_rect(right = SCREEN_WIDTH-20, y = 20)
-
-# создаем текст с текстом проигрыша, и прямоугольник в который будем вписывать данный текст
-label_game_over = game_over_font.render('GAME OVER', True, (255, 0, 0))
-label_game_over_rect = label_game_over.get_rect(center = (SCREEN_WIDTH*0.5, SCREEN_HEIGHT*0.5))
-
-enemy_image = image.load('./src/ufo.png')  # загружаем изображение врага
-enemy_width = 120 # задаем ширину изображения врага
-enemy_height = 62 # задаем высоту изображения врага
-enemy = transform.scale( enemy_image, (120, 62) )  # задаем размер для изображения врага
-enemy_max_x = SCREEN_WIDTH - enemy_width # задаем максимальную координату X врага - чтобы не создавать их за экраном
-
-UFO_LIST = [] # список, в котором будем хранить врагов
-
-# класс для создания врагов
-class Enemy():
+# класс игрока (наследуемся от PG.sprite.Sprite, для удобной проверки столкновений)
+class Player(PG.sprite.Sprite):
     def __init__(self):
-        self.image = enemy # присваиваем изображение
-        self.x = randint(0, enemy_max_x) # присваиваем случайную координату X
-        self.y = -enemy_height # присваиваем координату Y выше экрана на высоту изображения врага (для плавного появления сверху)
-        self.speed = 1 if randint(0, 3) < 3 else 2 # присваиваем случайную скорость (1 или 2)
-        UFO_LIST.append(self) # добавляем в список врагов нового врага
+        PG.sprite.Sprite.__init__(self) # вызываем конструктор родительского класса (обязательно)
+        self.image = PG.transform.scale( player_image, (62, 80) ) # задаем спрайту изображение нужного размера
+        self.rect = self.image.get_rect() # определяем прямоугольник по размеру изображения
+        self.rect.centerx = SCREEN_WIDTH * 0.5 # задаем прямоугольнику координаты x и y
+        self.rect.centery = SCREEN_HEIGHT - self.rect.height
+        self.hp = 5 # жизни игрока
+        self.speed = 5 # скорость игрока
+        self.score = 0 # очки игрока
+        self.shut_speed = 90 # время перезарядки (число кадров между выстрелами)
+        self.shut_timeout = self.shut_speed # число кадров до следующего выстрела
+        self.hp_label = Label(f'HP: {self.hp}', 15, 30, 'left') # создаем текст с количеством жизней и очками
+        self.score_label = Label(f'Score: {self.score}', SCREEN_WIDTH - 15, 30, 'right')
 
-    def remove(self): # метод, для удаления врага из списка врагов
-        index = UFO_LIST.index(self)
-        del UFO_LIST[index]
+    def update(self): # метод обновления игрока
+        # ДВИЖЕНИЕ
+        KEY = PG.key.get_pressed() # получаем список всех клавиш, которые были нажаты между обновлениями экрана
+        if KEY[PG.K_LEFT]: # если среди них была СТРЕЛКА ВЛЕВО
+            self.rect.x -= self.speed # - двигаем игрока влево
+            if self.rect.centerx < 0 : self.rect.centerx = 0 # не даем выйти за пределы экрана
+        elif KEY[PG.K_RIGHT]: # если среди них была СТРЕЛКА ВПРАВО
+            self.rect.x += self.speed # - двигаем игрока вправо
+            if self.rect.centerx > SCREEN_WIDTH : self.rect.centerx = SCREEN_WIDTH # не даем выйти за пределы экрана
+        elif KEY[PG.K_UP]: # если среди них была СТРЕЛКА ВВЕРХ
+            self.rect.y -= self.speed # - двигаем игрока вверх
+            if self.rect.centery < 0 : self.rect.centery = 0 # не даем выйти за пределы экрана
+        elif KEY[PG.K_DOWN]: # если среди них была СТРЕЛКА ВНИЗ
+            self.rect.y += self.speed # - двигаем игрока вниз
+            if self.rect.centery > SCREEN_HEIGHT : self.rect.centery = SCREEN_HEIGHT # не даем выйти за пределы экрана
 
-    def update(self, screen): # метод, для обновления врагов
-        self.y += self.speed # изменяем координату Y на скорость врага
-        # проверка - не улетел ли за экран
-        if self.y > SCREEN_HEIGHT:
-            # если улетел - удаляем из списка, отнимаем игроку здоровье
-            self.remove()
-            subtractHp()
-        else:
-            # если не улетел
-            # проверяем столкновение с игроком (проверка пересечения прямоугольников)
-            if self.x + enemy_width > player_x and self.x < player_x + player_width\
-            and self.y + enemy_height > player_y and self.y < player_y + player_height:
-                # если пересечение есть - удаляем из списка
-                addScore(5)
-                self.remove()
-            else:
-                # если пересечения нет (не сталкиваются) - рисуем врага
-                screen.blit(self.image, (self.x, self.y))
+        # СТРЕЛЬБА
+        self.shut_timeout -= 1 # уменьшаем число кадров до следующего выстрела
+        if self.shut_timeout <= 0: # если дошли до 0 или ниже - стреляем
+            self.shut_timeout = self.shut_speed # обновляем число кадров до следующего выстрела
+            bullets_group.add( Bullet(self.rect.centerx, self.rect.centery) ) # в группу пуль добавляем пулю
+            sound_shoot.play() # проигрываем звук выстрела
 
-tick = 0 # счетчик кадров
+        # СТОЛКНОВЕНИЕ С ВРАГАМИ (True - удалить врага, с которым столкнулись)
+        if PG.sprite.spritecollide(self, enemies_group, True) : self.getHit()
+
+    def getHit(self): # метод получения урона
+        self.hp -= 1 # отнимаем hp и обновляем текст с hp
+        self.hp_label.render(f'HP: {self.hp}')
+
+    def getScore(self, score = 1): # метод получения очков
+        self.score += score # прибавляем очки и обновляем текст с очками
+        self.score_label.render(f'Score: {self.score}')
+
+# класс игрока (наследуемся от PG.sprite.Sprite, для удобной проверки столкновений)
+class Enemy(PG.sprite.Sprite):
+    def __init__(self):
+        PG.sprite.Sprite.__init__(self) # вызываем конструктор родительского класса (обязательно)
+        self.image = PG.transform.scale( enemy_image, (120, 62) ) # задаем спрайту изображение нужного размера
+        self.rect = self.image.get_rect() # определяем прямоугольник по размеру изображения
+        self.rect.centerx = randint(0, SCREEN_WIDTH) # задаем прямоугольнику координаты
+        self.rect.bottom = 0
+        self.speed = randint(1, 3) # определяем случайную скорость (от 1 до 3)
+        enemies_group.add(self) # в группу врагов добавляем врага
+
+    def update(self): # метод обновления
+        self.rect.y += self.speed # двигаем врага вниз
+        if self.rect.top > SCREEN_HEIGHT or self.rect.colliderect(player.rect):
+            player.getHit() # если улетели за экран или столкнулись с игроком - наносим урон игроку
+            return self.kill() # удаляем врага и выходим из метода
+        
+        SCREEN.blit(self.image, self.rect) # рисуем врага в координатах прямоугольника
+
+# класс пули (наследуемся от PG.sprite.Sprite, для удобной проверки столкновений)
+class Bullet(PG.sprite.Sprite):
+    def __init__(self, x, y):
+        PG.sprite.Sprite.__init__(self) # вызываем конструктор родительского класса (обязательно)
+        self.image = PG.transform.scale( bullet_image, (16, 32) ) # задаем спрайту изображение нужного размера
+        self.rect = self.image.get_rect() # определяем прямоугольник по размеру изображения
+        self.rect.centerx = x # задаем прямоугольнику координаты
+        self.rect.centery = y
+        self.speed = 10 # скорость пули
+        bullets_group.add(self) # в группу пуль добавляем пулю
+
+    def update(self): # метод обновления
+        global enemy_add_timeout # получаем доступ к изменению переменной enemy_add_timeout (таймер появления врагов)
+
+        self.rect.y -= self.speed # двигаем пулю вверх
+        if self.rect.bottom < 0: # если пуля улетела за экран - удаляем ее и выходим из метода
+            return self.kill()
+        
+        # если пуля столкнулась с врагом (True - удалить врага, с которым столкнулись)
+        if PG.sprite.spritecollide(self, enemies_group, True):
+            enemy_add_timeout -= 1 # уменьшаем время до появления нового врага
+            player.getScore(5) # начисляем игроку очки
+            return self.kill() # удаляем пулю и выходим из метода
+        
+        SCREEN.blit(self.image, self.rect) # рисуем пулю в координатах прямоугольника
+
+player = Player() # создаем игрока
+
+enemy_add_timeout = FPS * 2 # создаем счетчик для ожидания появления новых врагов (считаем в кадрах)
+
+tick = 0 # создаем счетчик кадров
 game_loop_is = True # переменная, отвечающая за работу главного цикла игры (работает пока True)
+
+# ГЛАВНыЙ ЦИКЛ ИГРЫ (крутится, пока game_loop_is = True)
 while game_loop_is:
     CLOCK.tick(FPS) # ждем, до наступления следующего кадра
     tick += 1 # увеличиваем счетчик кадров
-    if tick % FPS == 0 : Enemy() # если номер кадра кратен FPS - создаем нового врага
+
+    # если номер кадра кратен счетчику появления врагов - создаем нового врага
+    if tick % enemy_add_timeout == 0 : Enemy() 
 
     # проверяем все события, которые произошли между кадрами
-    for e in event.get():
+    for event in PG.event.get():
         # если окно было закрыто или игрок нажал на клавишу ESCAPE
-        if e.type == QUIT or (e.type == KEYDOWN and e.key == K_ESCAPE):
+        if event.type == PG.QUIT or (event.type == PG.KEYDOWN and event.key == PG.K_ESCAPE):
             game_loop_is = False # останавливаем главный игровой цикл
 
-    # получаем список нажатых клавиш
-    KEY = key.get_pressed()
-    if KEY[K_LEFT]: # если нажата стрелка влево
-        player_x -= player_speed # уменьшаем координату X игрока
-        if player_x < 0: # если координата X игрока меньше чем 0 (игрок уходит за левый край экрана)
-            player_x = 0 # в координату X игрока записываем 0 (игрок возвращается к левому краю экрана)
-    elif KEY[K_RIGHT]: # если нажата стрелка вправо
-        player_x += player_speed  # увеличиваем координату X игрока
-        if player_x > player_max_x: # если координата X игрока больше чем мы определили в переменной player_max_x (игрок уходит за правый край экрана)
-            player_x = player_max_x # в координату X игрока записываем player_max_x (игрок возвращается к правому краю экрана)
-    elif KEY[K_UP]: # если нажата стрелка вверх
-        player_y -= player_speed
-        if player_y < 0:
-            player_y = 0
-    elif KEY[K_DOWN]: # если нажата стрелка вниз
-        player_y += player_speed
-        if player_y > player_max_y:
-            player_y = player_max_y
-
     SCREEN.blit(bg, (0, 0)) # рисуем фон в верхнем левом углу экрана
-
-    if player_hp > 0: # если у игрока есть жизни - рисуем игрока и обновляем врагов
-        SCREEN.blit(player, (player_x, player_y))
-        for ufo in UFO_LIST : ufo.update(SCREEN)
+    if player.hp > 0: # если у игрока есть жизни
+        bullets_group.update() # - обновляем пули
+        player.update() # - обновляем игрока
+        SCREEN.blit(player.image, player.rect) # - рисуем игрока
+        enemies_group.update() # - обновляем врагов
     else: # иначе - выводим текст о проигрыше
-        SCREEN.blit(label_game_over, label_game_over_rect)
+        SCREEN.blit(label_game_over.text, label_game_over.rect)
 
     # выводим на экран надписи, с числом жизней и очков игрока
-    SCREEN.blit(label_hp, label_hp_rect)
-    SCREEN.blit(label_score, label_score_rect)
+    SCREEN.blit(player.hp_label.text, player.hp_label.rect)
+    SCREEN.blit(player.score_label.text, player.score_label.rect)
 
-    display.flip() # обновляем экран игры
+    PG.display.flip() # обновляем экран игры
 
-quit() # выходим из Pygame
+# ПОСЛЕ ОСТАНОВКИ ГЛАВНОГО ИГРОВОГО ЦИКЛА
+PG.quit() # выходим из Pygame
 sys.exit() # закрываем приложение
