@@ -116,19 +116,19 @@ while game_loop_is:
 
     # получаем список нажатых клавиш
     KEY = key.get_pressed()
-    if KEY[K_LEFT]:
-        player_x -= player_speed
-        if player_x < 0:
-            player_x = 0
-    elif KEY[K_RIGHT]:
-        player_x += player_speed
-        if player_x > player_max_x:
-            player_x = player_max_x
-    elif KEY[K_UP]:
+    if KEY[K_LEFT]: # если нажата стрелка влево
+        player_x -= player_speed # уменьшаем координату X игрока
+        if player_x < 0: # если координата X игрока меньше чем 0 (игрок уходит за левый край экрана)
+            player_x = 0 # в координату X игрока записываем 0 (игрок возвращается к левому краю экрана)
+    elif KEY[K_RIGHT]: # если нажата стрелка вправо
+        player_x += player_speed  # увеличиваем координату X игрока
+        if player_x > player_max_x: # если координата X игрока больше чем мы определили в переменной player_max_x (игрок уходит за правый край экрана)
+            player_x = player_max_x # в координату X игрока записываем player_max_x (игрок возвращается к правому краю экрана)
+    elif KEY[K_UP]: # если нажата стрелка вверх
         player_y -= player_speed
         if player_y < 0:
             player_y = 0
-    elif KEY[K_DOWN]:
+    elif KEY[K_DOWN]: # если нажата стрелка вниз
         player_y += player_speed
         if player_y > player_max_y:
             player_y = player_max_y
